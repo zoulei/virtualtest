@@ -1,7 +1,10 @@
 from game import DealerFromHistory
 from pokerweb import handsengine
+from pokerweb import Constant
 import copy
 from handsdistribution import HandsDisQuality
+from rullbasedagent import HonestAgent
+from TraverseHands import TraverseValidHands
 
 class VirtualTestAgent:
     def __init__(self, dealer, pokeragentlist):
@@ -11,10 +14,6 @@ class VirtualTestAgent:
 
         self.m_testdis = HandsDisQuality()
         self.m_testEV = 0
-
-    def updatecumuinfo(self,round,actionidx):
-        self.m_cumuinfo
-        handsengine.updatecumuinfo(self,round,actionidx)
 
     def test(self):
         # execute all history action
@@ -63,3 +62,26 @@ class VirtualTestAgent:
                 if value == 0:
                     continue
                 self.m_testEV += self.testposhand(agent.m_pos, hand) * value
+
+class TestPayoff(TraverseValidHands):
+    def filter(self, handsinfo):
+        if handsinfo.get("payoff",None) is None:
+            return True
+        return TraverseValidHands.filter(handsinfo)
+
+    def mainfunc(self, handsinfo):
+        dealer = DealerFromHistory(handsinfo)
+        agentlist = []
+        quantity = handsengine(handsinfo).getplayerquantity()
+        for pos in range(1,quantity - 2 + 1) + [8,9]:
+            agentlist.append(HonestAgent(dealer,pos))
+        testagent = VirtualTestAgent(dealer, agentlist)
+        testagent.test()
+        print handsinfo["_id"]
+        print testagent.m_testEV
+        print testagent.m_testdis.calequalquality()
+        print testagent.m_testdis.calquality()
+        raise
+
+if __name__ == "__main__":
+    TestPayoff(Constant.HANDSDB,Constant.TJHANDSCLT,handsid="",step=1000).traverse()

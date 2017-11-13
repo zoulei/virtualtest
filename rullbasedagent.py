@@ -1,4 +1,5 @@
 from hunlgame import HandsRange
+from pokerweb import PrivateHandRank
 
 class HonestAgent:
     # game acts like a dealer
@@ -84,9 +85,28 @@ class HonestAgent:
     def getresponse(self, virtualhand = None):
         if virtualhand is None:
             virtualhand = self.m_myhand
-        self.m_winrateengine = hunlgame.FPWinrateEngine(self.m_dealer.getboard(), virtualhand)
-        winrate = self.m_winrateengine.calmywinrate()
-        isnuts = self.m_winrateengine.isnuts()
+
+        if self.m_dealer.getcurrentturn() > 1:
+            self.m_winrateengine = hunlgame.FPWinrateEngine(self.m_dealer.getboard(), virtualhand)
+            winrate = self.m_winrateengine.calmywinrate()
+            isnuts = self.m_winrateengine.isnuts()
+        else:
+            handrankengine = PrivateHandRank()
+            rank = handrankengine.getrank(virtualhand)
+            winhand = rank - 1
+            if virtualhand.suti():
+                tiehand = 3
+            elif virtualhand.pair():
+                tiehand = 5
+            else:
+                tiehand = 11
+            losehand = 1326 - winhand - tiehand - 1
+            winrate = (tiehand * 0.5 + winhand) / 1325
+            if rank > 1320:
+                isnuts = True
+            else:
+                isnuts = False
+
         if isnuts:
             return (0,0,1)
         raiserate = winrate * winrate * winrate
